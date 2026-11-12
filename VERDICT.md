@@ -196,3 +196,12 @@ real evidence of profit in this family of projects is **sportsbook line shopping
   ($400–500/day, ~$800k already quoting); **$0 on NBA game markets**.
 * Combined with the −0.6% maker result: rewards don't rescue NBA market-making. The only reward money of size is on
   slow futures/political markets, where it is a "paid to quote" yield play, not sports prediction.
+
+## Round 6 (2026-11-12): opening prices (`tools/open_candles.py`, `tools/open_test.py`)
+
+23,221 prop markets of 2026-27 (155 games) with the full price path from listing to tip; first sane quote a median
+13.5 h before tip. Opening mid log-loss 0.4841 vs tip mid 0.4801 (openers less informed), but the opening spread is
+6.7¢ vs 3.8¢ at tip, so every "buy at the open" price-band rule did worse than the same bet at tip. Drift open→tip
+averages −0.1¢ (|drift| 2.6¢), no usable direction. Model+Kalshi blend at the open: −3.2% on all games (+0.3¢ CLV
+— that's the absence leak: the model "knows" who sat out), −8% to −11% on games with no absences on either team
+(CLV −1.1¢). Opening prices are not an edge; injury news is what moves them.
