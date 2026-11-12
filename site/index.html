@@ -1,0 +1,144 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>NBA Edge</title>
+<link rel="manifest" href="manifest.webmanifest">
+<meta name="theme-color" content="#0f1115">
+<style>
+:root{--bg:#f6f7f9;--card:#fff;--ink:#14171c;--mute:#5d6673;--line:#e3e6eb;--acc:#1f6feb;--good:#1a7f37;--bad:#c62828;--warn:#9a6700;--chip:#eef1f5}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#0f1115;--card:#171a21;--ink:#e8ebf0;--mute:#9aa4b2;--line:#262b35;--acc:#58a6ff;--good:#3fb950;--bad:#f85149;--warn:#d29922;--chip:#222733}}
+:root[data-theme="dark"]{--bg:#0f1115;--card:#171a21;--ink:#e8ebf0;--mute:#9aa4b2;--line:#262b35;--acc:#58a6ff;--good:#3fb950;--bad:#f85149;--warn:#d29922;--chip:#222733}
+*{box-sizing:border-box}html,body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.45 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif}
+header{position:sticky;top:0;z-index:5;background:var(--bg);border-bottom:1px solid var(--line);padding:10px 16px 0}
+h1{font-size:18px;margin:0 0 2px}.sub{color:var(--mute);font-size:12px}
+nav{display:flex;gap:4px;overflow-x:auto;margin-top:8px}nav button{flex:none;border:0;background:none;color:var(--mute);padding:8px 10px;font:inherit;font-weight:600;border-bottom:2px solid transparent}
+nav button.on{color:var(--ink);border-color:var(--acc)}
+main{max-width:760px;margin:0 auto;padding:12px 16px 80px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:12px;margin:10px 0}
+.row{display:flex;justify-content:space-between;gap:8px;align-items:flex-start}.grow{flex:1;min-width:0}
+.big{font-weight:700}.mute{color:var(--mute);font-size:13px}.chip{display:inline-block;background:var(--chip);border-radius:999px;padding:1px 8px;font-size:12px;margin:2px 4px 0 0}
+.good{color:var(--good)}.bad{color:var(--bad)}.warn{color:var(--warn)}
+table{width:100%;border-collapse:collapse;font-size:13px}th,td{text-align:left;padding:5px 4px;border-bottom:1px solid var(--line)}th{color:var(--mute);font-weight:600}
+td.n,th.n{text-align:right;font-variant-numeric:tabular-nums}
+.btn{border:1px solid var(--line);background:var(--card);color:var(--ink);border-radius:8px;padding:6px 10px;font:inherit}
+.btn.on{background:var(--acc);border-color:var(--acc);color:#fff}
+input[type=checkbox]{transform:scale(1.2)}select{font:inherit;padding:4px;border-radius:6px;border:1px solid var(--line);background:var(--card);color:var(--ink)}
+.banner{border-left:4px solid var(--warn)}
+.scroll{overflow-x:auto}
+</style>
+</head>
+<body>
+<header>
+  <h1>🏀 NBA Edge</h1>
+  <div class="sub" id="gen">loading…</div>
+  <nav id="tabs"></nav>
+</header>
+<main id="main"></main>
+<script>
+const TABS=[["picks","Picks"],["parlay","Parlays"],["games","Games"],["record","Record"],["how","How"]];
+let B=null, tab=(()=>{try{return localStorage.getItem("nba_tab")||"picks"}catch(e){return "picks"}})(), sel=new Set();
+const $=s=>document.querySelector(s), pct=x=>x==null?"–":(100*x).toFixed(1)+"%", sg=x=>(x>=0?"+":"")+(100*x).toFixed(1)+"%";
+const amer=d=>d>=2?"+"+Math.round((d-1)*100):"-"+Math.round(100/(d-1));
+const tip=t=>new Date(t).toLocaleString([], {weekday:"short",hour:"numeric",minute:"2-digit"});
+function nav(){ $("#tabs").innerHTML=TABS.map(([k,l])=>`<button class="${k==tab?"on":""}" onclick="go('${k}')">${l}</button>`).join(""); }
+function go(k){tab=k;try{localStorage.setItem("nba_tab",k)}catch(e){};nav();render();}
+async function load(){
+  try{ const r=await fetch("board.json?"+Date.now()); B=await r.json(); }catch(e){ $("#gen").textContent="board not available yet"; return; }
+  const age=(Date.now()-new Date(B.generated))/60000;
+  $("#gen").innerHTML=`updated ${age<1?"just now":Math.round(age)+" min ago"} · model trained on games to ${B.model_trained?B.model_trained.slice(0,10):"?"}`;
+  nav(); render();
+}
+function legLine(p){return `${p.player} <span class="mute">(${p.team} v ${p.opp})</span> — ${p.side=="YES"?"over":"under"}: ${p.k}+ ${p.label}`}
+function picksTab(){
+  const P=(B.picks||[]).slice().sort((a,b)=>b.edge-a.edge);
+  const staked=P.filter(p=>p.staked), paper=P.filter(p=>!p.staked);
+  let h=`<div class="card banner"><b>Honest status.</b> No NBA strategy is proven yet, so every pick below is <b>paper</b> (0u) until its live record beats Kalshi's price.
+  Threes props are the one market where our model adds information to Kalshi's price: priced with a model+Kalshi blend they made +10% in 2025-26 backtests, but only about break-even on this season's fresh games. Points, rebounds, assists, PRA and game lines showed no edge, so they get no picks.</div>`;
+  const by={}; P.forEach(p=>{(by[p.strategy]=by[p.strategy]||[]).push(p)});
+  const order=(B.config.strategies||[]).map(s=>s.name);
+  for(const s of order){ const L=by[s]||[]; const cfg=B.config.strategies.find(x=>x.name==s);
+    h+=`<div class="card"><div class="row"><div class="big">${s.replace("_"," ")}</div><div class="mute">${L.length} picks · ${cfg.staked?"staked":"paper"}</div></div><div class="mute">${cfg.why}</div>`;
+    if(!L.length){h+=`<div class="mute" style="margin-top:6px">No picks right now.</div>`}
+    h+=`<div class="scroll"><table><tr><th>Pick</th><th class="n">Price</th><th class="n">Model</th><th class="n">EV</th><th class="n">Units</th></tr>`+
+      L.slice(0,40).map(p=>`<tr><td>${legLine(p)}<div class="mute">${tip(p.tip)} · proj ${p.mu} ${p.inj?"· <span class='warn'>"+p.inj+"</span>":""}</div></td>
+      <td class="n">${Math.round(100*p.pay)}¢</td><td class="n">${pct(p.p)}</td><td class="n good">${sg(p.ev)}</td><td class="n">${p.units.toFixed(2)}u${p.staked?"":"<div class='mute'>paper</div>"}</td></tr>`).join("")+`</table></div></div>`;
+  }
+  return h;
+}
+// ---------- parlays: Gaussian copula with walk-forward residual correlations ----------
+function rho(a,b){
+  if(a.gid!=b.gid) return 0;
+  if(a.pid==b.pid){ if(a.stat==b.stat) return 0.95; const k=[a.stat,b.stat].sort().join("-"); const m={"pts-reb":.26,"ast-pts":.15,"ast-reb":.19,"fg3m-pts":.67,"fg3m-reb":.11,"ast-fg3m":.09}; return m[k]??.3; }
+  if(a.stat=="fg3m"&&b.stat=="fg3m") return a.team==b.team? -0.01 : 0.0;
+  return a.team==b.team? -0.06 : 0.0;
+}
+function chol(M){const n=M.length,L=M.map(()=>Array(n).fill(0));for(let i=0;i<n;i++)for(let j=0;j<=i;j++){let s=M[i][j];for(let k=0;k<j;k++)s-=L[i][k]*L[j][k];if(i==j){if(s<=1e-9)return null;L[i][i]=Math.sqrt(s)}else L[i][j]=s/L[j][j]}return L}
+function invn(p){const a=[-39.69683028665376,220.9460984245205,-275.9285104469687,138.357751867269,-30.66479806614716,2.506628277459239],b=[-54.47609879822406,161.5858368580409,-155.6989798598866,66.80131188771972,-13.28068155211027],c=[-.007784894002430293,-.3223964580411365,-2.400758277161838,-2.549732539343734,4.374664141464968,2.938163982698783],d=[.007784695709041462,.3224671290700398,2.445134137142996,3.754408661907416];const q=Math.min(Math.max(p,1e-9),1-1e-9);if(q<.02425){const t=Math.sqrt(-2*Math.log(q));return(((((c[0]*t+c[1])*t+c[2])*t+c[3])*t+c[4])*t+c[5])/((((d[0]*t+d[1])*t+d[2])*t+d[3])*t+1)}if(q>1-.02425){const t=Math.sqrt(-2*Math.log(1-q));return-(((((c[0]*t+c[1])*t+c[2])*t+c[3])*t+c[4])*t+c[5])/((((d[0]*t+d[1])*t+d[2])*t+d[3])*t+1)}const t=q-.5,r=t*t;return(((((a[0]*r+a[1])*r+a[2])*r+a[3])*r+a[4])*r+a[5])*t/(((((b[0]*r+b[1])*r+b[2])*r+b[3])*r+b[4])*r+1)}
+function gauss(){let u=0,v=0;while(!u)u=Math.random();while(!v)v=Math.random();return Math.sqrt(-2*Math.log(u))*Math.cos(2*Math.PI*v)}
+function joint(legs,N=20000){
+  const n=legs.length, M=legs.map(a=>legs.map(b=>a===b?1:rho(a,b))), L=chol(M); if(!L) return null;
+  // over-event: Z > invn(1 - p_over); our leg prob p is for its own side
+  const th=legs.map(l=>invn(1-(l.side=="YES"?l.p:1-l.p))); let hit=0;
+  for(let s=0;s<N;s++){const e=legs.map(()=>gauss());let ok=true;for(let i=0;i<n&&ok;i++){let z=0;for(let k=0;k<=i;k++)z+=L[i][k]*e[k];const over=z>th[i];ok=(legs[i].side=="YES")?over:!over}if(ok)hit++}
+  return hit/N;
+}
+function parlayTab(){
+  const P=(B.picks||[]).filter(p=>p.strategy=="threes_blend").sort((a,b)=>b.edge-a.edge);
+  let h=`<div class="card"><b>How to read this.</b> Only legs the model rates +EV after Kalshi's fee can be picked. Hit chance uses a correlation model
+  (same player's stats move together, teammates slightly opposite, other games independent). <b>Parlays don't create edge</b>: a parlay of −2% legs is about −6% (3 legs) and Kalshi's NBA combos cost buyers −12%.
+  Kalshi combos don't include player props, so use the <b>break-even payout</b> to judge any sportsbook parlay.</div>`;
+  if(!P.length) return h+`<div class="card mute">No +EV legs right now.</div>`;
+  h+=`<div class="card"><div class="mute">Tap legs (2–5):</div>`+P.slice(0,30).map((p,i)=>`<label class="row" style="padding:5px 0;border-bottom:1px solid var(--line)"><span class="grow">${legLine(p)}<div class="mute">${Math.round(100*p.pay)}¢ · model ${pct(p.p)} · EV ${sg(p.ev)}</div></span><input type="checkbox" ${sel.has(p.ticker+p.side)?"checked":""} onchange="tog('${p.ticker+p.side}')"></label>`).join("")+`</div>`;
+  const legs=P.filter(p=>sel.has(p.ticker+p.side));
+  if(legs.length>=2){
+    const j=joint(legs), indep=legs.reduce((a,l)=>a*l.p,1), cost=legs.reduce((a,l)=>a*l.cost,1), dec=1/cost, fair=1/j, ev=j/cost-1;
+    const f=Math.max(0,(j-cost)/(1-cost))*0.25*100, u=Math.min(0.5,f);
+    h+=`<div class="card"><div class="big">${legs.length}-leg parlay</div>
+      <table><tr><td>Hit chance (correlated)</td><td class="n">${pct(j)}</td></tr><tr><td>If independent</td><td class="n">${pct(indep)}</td></tr>
+      <tr><td>Kalshi legs multiplied (cost ${cost.toFixed(3)})</td><td class="n">${dec.toFixed(2)}x (${amer(dec)})</td></tr>
+      <tr><td>EV at that price</td><td class="n ${ev>0?"good":"bad"}">${sg(ev)}</td></tr>
+      <tr><td>Break-even payout (any book)</td><td class="n">${fair.toFixed(2)}x (${amer(fair)})</td></tr>
+      <tr><td>Stake (¼ Kelly, max 0.5u)</td><td class="n">${u.toFixed(2)}u</td></tr></table></div>`;
+    if(legs.length>=3){
+      const combos=[];const k=2;for(let a=0;a<legs.length;a++)for(let b=a+1;b<legs.length;b++)combos.push([legs[a],legs[b]]);
+      let tot=0,evs=0;combos.forEach(c=>{const jj=joint(c,8000),cc=c[0].cost*c[1].cost;evs+=jj/cc-1;tot++});
+      h+=`<div class="card"><div class="big">Round robin by 2s</div><div class="mute">${tot} parlays · average EV ${sg(evs/tot)} · stake 0.1u each</div></div>`;
+    }
+  }
+  return h;
+}
+function tog(k){sel.has(k)?sel.delete(k):sel.add(k);render()}
+function gamesTab(){
+  let h="";const pr=B.projections||[];
+  for(const g of B.games||[]){
+    const ps=pr.filter(p=>p.gid==g.gid).sort((a,b)=>b.min-a.min);
+    h+=`<div class="card"><div class="row"><div class="big">${g.away} @ ${g.home}</div><div class="mute">${tip(g.tip)}</div></div>
+      <div class="mute">Model: ${g.home} ${g.xmargin>=0?"by "+g.xmargin:"loses by "+(-g.xmargin)} · total ${g.xtotal??"–"} (Kalshi's prices are sharper — shown for context)</div>
+      <div class="scroll"><table><tr><th>Player</th><th class="n">Min</th><th class="n">Pts</th><th class="n">Reb</th><th class="n">Ast</th><th class="n">3PM</th><th class="n">PRA</th></tr>`+
+      ps.map(p=>`<tr><td>${p.player} <span class="mute">${p.team}</span>${p.inj?" <span class='warn'>"+p.inj+"</span>":""}</td><td class="n">${p.min}</td><td class="n">${p.pts}</td><td class="n">${p.reb}</td><td class="n">${p.ast}</td><td class="n">${p.fg3m}</td><td class="n">${p.pra}</td></tr>`).join("")+`</table></div></div>`;
+  }
+  return h||`<div class="card mute">No upcoming games in the next two days.</div>`;
+}
+function recordTab(){
+  const R=B.record||{};
+  let h=`<div class="card"><div class="big">Paper record (pick logged at first sighting, graded from the box score)</div><div class="scroll"><table><tr><th>Strategy</th><th class="n">Bets</th><th class="n">Won</th><th class="n">ROI</th><th class="n">CLV</th><th class="n">Open</th></tr>`+
+    Object.entries(R).map(([k,s])=>`<tr><td>${k}</td><td class="n">${s.n}</td><td class="n">${s.won}</td><td class="n ${s.roi>0?"good":"bad"}">${s.roi==null?"–":sg(s.roi)}</td><td class="n">${s.clv==null?"–":(100*s.clv).toFixed(1)+"¢"}</td><td class="n">${s.open}</td></tr>`).join("")+`</table></div>
+    <div class="mute">ROI per bet at the price we first saw (incl. fee). CLV = last pre-tip price minus entry price (positive = market moved our way). A strategy gets stakes only after ~150 graded bets with ROI and CLV clearly above 0.</div></div>`;
+  h+=`<div class="card"><div class="big">Ledger (latest graded)</div><div class="scroll"><table><tr><th>Pick</th><th class="n">Entry</th><th class="n">Close</th><th class="n">Result</th></tr>`+
+    (B.recent||[]).slice(0,80).map(e=>`<tr><td>${legLine(e)}<div class="mute">${e.strategy} · ${new Date(e.tip).toLocaleDateString()}</div></td><td class="n">${Math.round(100*e.entry)}¢</td><td class="n">${e.close!=null?Math.round(100*e.close)+"¢":"–"}</td><td class="n ${e.result=="won"?"good":e.result=="lost"?"bad":""}">${e.result}${e.actual!=null?" ("+e.actual+")":""}</td></tr>`).join("")+`</table></div></div>`;
+  return h;
+}
+function howTab(){return `<div class="card"><b>What this is.</b> A walk-forward NBA model (team ratings + per-player minutes and rates, injuries, rest, opponent, pace) priced against every open Kalshi player prop.
+Research verdict (Nov 2025 – Nov 2026, Kalshi prices just before tip, fee included):
+<ul><li>Moneylines, spreads, totals: Kalshi is sharper than the model; model bets lost.</li>
+<li>Points / rebounds / assists / PRA props: Kalshi is well calibrated; model bets −5% to −8% (the cost of spread + fee). Overs, especially long-shot overs, are slightly overpriced.</li>
+<li>Threes props: the model is as sharp as Kalshi and a 50/50 blend beats Kalshi's price on log-loss, even on fresh 2026-27 games. Betting it: +10% in 2025-26, about break-even so far this season. The only lead — paper until the live record confirms it.</li>
+<li>"Safe" legs (85–97¢) lose ~1.5–3% each; parlays multiply that.</li></ul>
+Refreshes every ~20 min in GitHub Actions. Not financial advice.</div>`}
+function render(){ if(!B) return; $("#main").innerHTML={picks:picksTab,parlay:parlayTab,games:gamesTab,record:recordTab,how:howTab}[tab](); }
+load(); setInterval(load, 5*60*1000);
+</script>
+</body>
+</html>

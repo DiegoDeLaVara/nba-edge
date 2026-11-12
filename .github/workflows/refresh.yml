@@ -1,0 +1,65 @@
+name: refresh board
+
+# Same self-chaining loop as Tennis Edge: GitHub's cron is unreliable, so each run refreshes every ~20 minutes for
+# ~5.3 hours and then starts its successor. The cron is only a backup restart. A push to main ends the loop early.
+# Kalshi and ESPN are public APIs: no secrets needed.
+
+on:
+  schedule:
+    - cron: "11,41 * * * *"
+  workflow_dispatch:
+  push:
+    branches: [main]
+
+permissions:
+  contents: write
+  actions: write
+
+concurrency:
+  group: refresh
+  cancel-in-progress: false
+
+jobs:
+  refresh:
+    runs-on: ubuntu-latest
+    timeout-minutes: 355
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+          cache: pip
+      - run: pip install -q -r requirements.txt
+      - name: Refresh every 20 minutes
+        env:
+          REPO_URL: https://x-access-token:${{ github.token }}@github.com/${{ github.repository }}.git
+        run: |
+          start=$(date +%s)
+          head=$(git rev-parse HEAD)
+          git fetch -q origin gh-pages --depth=1 || true
+          mkdir -p pub
+          if git rev-parse --verify -q origin/gh-pages >/dev/null; then
+            git --work-tree=pub checkout origin/gh-pages -- . && git reset -q
+          fi
+          i=0
+          while :; do
+            i=$((i+1)); t0=$(date +%s)
+            echo "::group::refresh $i $(date -u +%FT%TZ)"
+            python -m edge.refresh --data pub || echo "refresh $i failed"
+            cp site/index.html site/manifest.webmanifest pub/
+            touch pub/.nojekyll
+            ( cd pub && rm -rf .git && git init -q -b gh-pages && git config user.name "nba-edge bot" \
+              && git config user.email "actions@users.noreply.github.com" && git add -A \
+              && git commit -q -m "board $(date -u +%FT%TZ)" && git push -q -f "$REPO_URL" gh-pages ) || echo "publish $i failed"
+            echo "::endgroup::"
+            git fetch -q origin main --depth=1 && [ "$(git rev-parse origin/main)" != "$head" ] && { echo "new code on main"; break; }
+            [ $(( $(date +%s) - start )) -gt 19200 ] && break
+            wait=$(( 1200 - ($(date +%s) - t0) )); [ $wait -gt 0 ] && sleep $wait
+          done
+      - name: Start the next run
+        if: always()
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh workflow run refresh.yml -R "${{ github.repository }}" --ref main

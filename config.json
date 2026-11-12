@@ -1,0 +1,22 @@
+{
+ "unit_note": "1u = 1% of bankroll",
+ "blend": {
+  "fg3m": {
+   "a_mid": 0.47,
+   "b_model": 0.54,
+   "c": -0.07,
+   "why": "logistic blend of Kalshi mid and model, fitted on Nov 2025-Jun 2026; beat Kalshi log-loss on 2026-27 (0.4510 vs 0.4521)"
+  }
+ },
+ "strategies": [
+  {
+   "name": "threes_blend",
+   "stat": "fg3m",
+   "min_edge": 0.02,
+   "kelly": 0.25,
+   "max_units": 0.5,
+   "staked": false,
+   "why": "Threes props priced with the model+Kalshi blend. Backtest 2025-26 +10% (both halves); fresh 2026-27 test about break-even (+5% at this threshold, 90% CI -1%..+11%). Paper until ~150 live bets show ROI and CLV above 0."
+  }
+ ]
+}

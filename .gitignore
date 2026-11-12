@@ -1,0 +1,6 @@
+work/
+out/
+pub/
+__pycache__/
+*.pyc
+.venv/
