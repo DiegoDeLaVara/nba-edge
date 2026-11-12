@@ -180,3 +180,19 @@ line moves, cross-venue gaps, or making markets — beats them robustly after co
 and rebounds is the best lead (+5.3% in backtest, fragile) and is paper-tracked on the board. The only approach with
 real evidence of profit in this family of projects is **sportsbook line shopping against a sharp price** (tennis:
 +3–8% vs Pinnacle no-vig), which needs the Odds API key going forward.
+
+## Round 5 (2026-11-12): maker rewards
+
+* **Kalshi Liquidity Incentive Program** (API `/incentive_programs`): 6,565 active programs, ~$100 per market per
+  week (period_reward 1,000,000 in hundredths of a cent), target 1,000 contracts, score halves per cent from the best
+  price. Almost all are slow markets — politics, awards, culture and sports futures (UCL top scorer, NHL season goals,
+  MLB next team, NFL trades, Heisman). **No NBA game or prop markets.** Depth near the top of those books: median
+  ~14k contracts (1–2¢ longshots 170k+), so 1,000 contracts would earn a few % of a $100 pool.
+* **Kalshi Sports Prop Combo legs program**: 25% of parlay fees, paid monthly as bonus credit to makers on prop legs.
+  Open NBA prop parlays: ~258k contracts, mostly 1–3¢ → fees of a few hundred dollars → a pool of tens to low hundreds
+  of dollars a month vs millions of dollars of NBA prop maker volume. Negligible.
+* **Polymarket**: maker rebates in sports = 15% of a 0.05·p(1−p) taker fee (≈0.4% of notional at 50¢). Liquidity
+  rewards ≈ $127k/day over 11,313 markets, mostly 2028 election markets ($100–510/day each) plus some NFL games
+  ($400–500/day, ~$800k already quoting); **$0 on NBA game markets**.
+* Combined with the −0.6% maker result: rewards don't rescue NBA market-making. The only reward money of size is on
+  slow futures/political markets, where it is a "paid to quote" yield play, not sports prediction.
