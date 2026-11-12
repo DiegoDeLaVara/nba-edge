@@ -152,3 +152,31 @@ assists the blend is ~90% Kalshi's price, so it rarely disagrees. Board strategy
   clearly better.
 * Next: price disagreements between venues (Kalshi vs Polymarket, which lists full NBA props with free price history)
   — the only kind of edge that held up in tennis, and it doesn't depend on a model.
+
+## Round 4 (2026-11-12): other venues and the other side of the trade
+
+**Kalshi vs Polymarket** (`tools/pm_match.py`, `pm_prices.py`, `pm_test.py`; 28,428 matched markets, 1,464 games,
+Polymarket price taken at the same moment as the Kalshi quote):
+
+| Market | Log-loss Kalshi / Polymarket | Buy the cheaper venue |
+|---|---|---|
+| Moneyline (1,456) | 0.5698 / 0.5698 | buy Polymarket when Kalshi says cheap: −2.3% |
+| Totals (4,608) | 0.5964 / 0.5962 | ~100 real gaps, noise |
+| Props (22,364) | 0.538 / 0.583 (threes 0.498 / 0.598) | buy Kalshi when Polymarket disagrees: −12% to −17% |
+
+Polymarket NBA props look "wrong" only because their books are empty: live median bid–ask spread 23¢ (points) to
+53¢ (assists) with $20–50 at the best price, so the historical prices are midpoints you can't trade. Moneylines (1¢
+spread, ~$1,200 deep) and totals (4¢) are as sharp as Kalshi. No cross-venue edge.
+
+**Resting (maker) orders on Kalshi props** (`tools/kalshi_trades.py`, `maker_test.py`; 330k pre-game fills, $10.3M
+risked, 155 games of 2026-27; maker fee assumed 0): maker ROI **−0.6%** (H1 +2.0%, H2 −3.6%); takers −2.6% after fee.
+No slice holds in both halves except fills in the last 15 minutes (+5.7%, one of ~30 slices — not trusted); makers
+on the side our blend agrees with +1.0% (+3.5% / −2.3%). Same adverse-selection story as tennis: no edge.
+
+## Bottom line (so far)
+
+NBA prices on Kalshi are efficient. Nothing tested — model picks, favourite/defence correlations, price bands,
+line moves, cross-venue gaps, or making markets — beats them robustly after costs. The model+Kalshi blend on threes
+and rebounds is the best lead (+5.3% in backtest, fragile) and is paper-tracked on the board. The only approach with
+real evidence of profit in this family of projects is **sportsbook line shopping against a sharp price** (tennis:
++3–8% vs Pinnacle no-vig), which needs the Odds API key going forward.
