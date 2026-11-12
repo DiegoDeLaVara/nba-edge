@@ -1,22 +1,64 @@
 {
  "unit_note": "1u = 1% of bankroll",
  "blend": {
+  "pts": {
+   "a_mid": 0.926,
+   "b_model": 0.087,
+   "c": -0.054,
+   "why": "logistic blend of Kalshi mid and model, fitted on Nov 2025-Nov 2026 Kalshi props"
+  },
+  "reb": {
+   "a_mid": 0.848,
+   "b_model": 0.207,
+   "c": 0.021,
+   "why": "logistic blend of Kalshi mid and model, fitted on Nov 2025-Nov 2026 Kalshi props"
+  },
+  "ast": {
+   "a_mid": 0.898,
+   "b_model": 0.13,
+   "c": 0.017,
+   "why": "logistic blend of Kalshi mid and model, fitted on Nov 2025-Nov 2026 Kalshi props"
+  },
   "fg3m": {
-   "a_mid": 0.47,
-   "b_model": 0.54,
-   "c": -0.07,
-   "why": "logistic blend of Kalshi mid and model, fitted on Nov 2025-Jun 2026; beat Kalshi log-loss on 2026-27 (0.4510 vs 0.4521)"
+   "a_mid": 0.499,
+   "b_model": 0.504,
+   "c": -0.028,
+   "why": "logistic blend of Kalshi mid and model, fitted on Nov 2025-Nov 2026 Kalshi props"
   }
  },
  "strategies": [
   {
-   "name": "threes_blend",
-   "stat": "fg3m",
+   "name": "value_50c",
+   "stats": [
+    "fg3m",
+    "reb",
+    "pts",
+    "ast"
+   ],
    "min_edge": 0.02,
-   "kelly": 0.25,
-   "max_units": 0.5,
+   "mid_lo": 0.35,
+   "mid_hi": 0.65,
+   "kelly": 0.1,
+   "max_units": 0.25,
+   "staked": true,
+   "why": "Blend of model + Kalshi price, picks near 50c with 2%+ edge after fee. Backtest 1,093 bets: hit 56% at 52c avg, +5.3% ROI, both halves +, this season +3.9% (690 bets); 0 of 139 such rules passed in luck runs. Small stakes until the live record confirms.",
+   "max_hours": 12
+  },
+  {
+   "name": "value_any_price",
+   "stats": [
+    "fg3m",
+    "reb",
+    "pts",
+    "ast"
+   ],
+   "min_edge": 0.02,
+   "mid_lo": 0.0,
+   "mid_hi": 1.0,
+   "kelly": 0.1,
+   "max_units": 0.25,
    "staked": false,
-   "why": "Threes props priced with the model+Kalshi blend. Backtest 2025-26 +10% (both halves); fresh 2026-27 test about break-even (+5% at this threshold, 90% CI -1%..+11%). Paper until ~150 live bets show ROI and CLV above 0."
+   "why": "Same blend at any price (+7.1% backtest, +1.9% this season). Paper."
   }
  ]
 }

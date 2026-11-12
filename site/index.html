@@ -54,8 +54,9 @@ function legLine(p){return `${p.player} <span class="mute">(${p.team} v ${p.opp}
 function picksTab(){
   const P=(B.picks||[]).slice().sort((a,b)=>b.edge-a.edge);
   const staked=P.filter(p=>p.staked), paper=P.filter(p=>!p.staked);
-  let h=`<div class="card banner"><b>Honest status.</b> No NBA strategy is proven yet, so every pick below is <b>paper</b>: the units shown are what it <i>would</i> stake (¼ Kelly), and nothing is staked until its live record beats Kalshi's price. Several lines for the same player move together — count them as one bet.
-  Threes props are the one market where our model adds information to Kalshi's price: priced with a model+Kalshi blend they made +10% in 2025-26 backtests, but only about break-even on this season's fresh games. Points, rebounds, assists, PRA and game lines showed no edge, so they get no picks.</div>`;
+  let h=`<div class="card banner"><b>How these picks work.</b> Each prop is priced with a blend of our player model and Kalshi's own price; a pick needs a 2%+ edge after Kalshi's fee.
+  <b>value 50c</b> (small stakes): lines near 50¢ — backtest 1,093 bets hit 56% at 52¢ average, +5.3%, and +3.9% on this season's games. It mostly fires on <b>threes unders</b> and <b>rebounds</b>; for points and assists Kalshi is so sharp the model rarely disagrees.
+  One pick per player per stat (his lines move together). Units = 0.1 Kelly, max 0.25u per pick. Unproven live — the Record tab will tell.</div>`;
   const by={}; P.forEach(p=>{(by[p.strategy]=by[p.strategy]||[]).push(p)});
   const order=(B.config.strategies||[]).map(s=>s.name);
   for(const s of order){ const L=by[s]||[]; const cfg=B.config.strategies.find(x=>x.name==s);
@@ -85,7 +86,7 @@ function joint(legs,N=20000){
   return hit/N;
 }
 function parlayTab(){
-  const P=(B.picks||[]).filter(p=>p.strategy=="threes_blend").sort((a,b)=>b.edge-a.edge);
+  const P=(B.picks||[]).filter(p=>p.strategy=="value_50c"||p.strategy=="value_any_price").filter((p,i,a)=>a.findIndex(q=>q.ticker==p.ticker&&q.side==p.side)==i).sort((a,b)=>b.edge-a.edge);
   let h=`<div class="card"><b>How to read this.</b> Only legs the model rates +EV after Kalshi's fee can be picked. Hit chance uses a correlation model
   (same player's stats move together, teammates slightly opposite, other games independent). <b>Parlays don't create edge</b>: a parlay of −2% legs is about −6% (3 legs) and Kalshi's NBA combos cost buyers −12%.
   Kalshi combos don't include player props, so use the <b>break-even payout</b> to judge any sportsbook parlay.</div>`;
@@ -134,7 +135,8 @@ function howTab(){return `<div class="card"><b>What this is.</b> A walk-forward 
 Research verdict (Nov 2025 – Nov 2026, Kalshi prices just before tip, fee included):
 <ul><li>Moneylines, spreads, totals: Kalshi is sharper than the model; model bets lost.</li>
 <li>Points / rebounds / assists / PRA props: Kalshi is well calibrated; model bets −5% to −8% (the cost of spread + fee). Overs, especially long-shot overs, are slightly overpriced.</li>
-<li>Threes props: the model is as sharp as Kalshi and a 50/50 blend beats Kalshi's price on log-loss, even on fresh 2026-27 games. Betting it: +10% in 2025-26, about break-even so far this season. The only lead — paper until the live record confirms it.</li>
+<li>Model + Kalshi blend, picks near 50¢ with 2%+ edge: +5.3% on 1,093 backtest bets (both halves positive, +3.9% this season); 0 of 139 rules passed when outcomes were re-drawn at random. Mostly threes unders and rebounds.</li>
+<li>Tested and priced in (don't bet them): favourite team's starters over −18%; soft defence vs position over −16% (tough defence under −6%); high team total over −16%; teammates out → starters over −16%; rested players over −17%; back-to-back starters under −4%; following or fading prop moves; game-line moves before tip.</li>
 <li>"Safe" legs (85–97¢) lose ~1.5–3% each; parlays multiply that.</li></ul>
 Refreshes every ~20 min in GitHub Actions. Not financial advice.</div>`}
 function render(){ if(!B) return; $("#main").innerHTML={picks:picksTab,parlay:parlayTab,games:gamesTab,record:recordTab,how:howTab}[tab](); }

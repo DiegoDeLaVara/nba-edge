@@ -112,3 +112,31 @@ So a player's over and the game over are positively correlated; teammates' overs
    There's no free history to test it; it needs the Odds API key going forward. `trading_bot_V2/bets/scan.py` already
    line-shops NBA main lines.
 4. Not done: double-double / triple-double cross-market consistency (download stopped), quarter/half markets.
+
+## Round 2 (2026-11-12): correlation, defence vs position, game script, ~50¢ picks
+
+`tools/value_hunt.py` ran 139 rules over every prop (points, rebounds, assists, threes), each judged at the real
+pre-tip price with fee, on both halves, on the fresh 2026-27 season alone, and with a game-clustered bootstrap.
+A rule "passes" if both halves > 0, the fresh season > 0 and P(ROI ≤ 0) < 10%. With outcomes redrawn from Kalshi's
+price (luck runs) **0 rules pass**; on the real outcomes **5 pass — all of them the model+Kalshi blend**.
+
+| Idea | Result (ROI after fee) |
+|---|---|
+| Favourite team (win ≥ 70%) starters OVER | −17.8% (hit 39.5% at 42.3¢) |
+| Favourite team bench OVER | −26.6% |
+| Big underdog starters UNDER / OVER | −4.6% / −32% (assists) |
+| Soft defence vs position (top 20%) OVER | −15.8% — the effect is real in box scores (+0.36 pts, +0.17 ast vs the stingiest fifth) but priced |
+| Tough defence vs position UNDER | −6.1% |
+| High implied team total OVER / low UNDER | −16.1% / −2.2% |
+| Teammates out → starters OVER | −16.3% |
+| Back-to-back starters UNDER; rested OVER; home OVER | −4.4%; −16.9%; −16.6% |
+| Game total / win-prob moved before tip → props | −4% to −6% (props aren't lagging the game lines) |
+| Follow or fade prop moves (5¢+ in last 3h) | negative |
+| Kalshi ladder (line rich vs the player's other lines) | −1% to −4% |
+| **Blend edge > 2%, ~50¢ (35–65¢)** | **+5.3%, 1,093 bets, hit 56.2% at 51.9¢; H1 +11.3%, H2 +4.2%, 2026-27 +3.9% (690)** |
+| Blend edge > 2%, any price | +7.1% (H1 +17.3, H2 +5.3, 2026-27 +1.9%) |
+
+The ~50¢ blend edge grows with the threshold (edge > 1/2/3/5%: +1.9/+5.3/+6.5/+7.9%) and is positive this season
+at every threshold. It fires mostly on threes unders (+6.8%) and rebounds (both sides +7.6–10.5%); for points and
+assists the blend is ~90% Kalshi's price, so it rarely disagrees. Board strategy `value_50c` stakes it small
+(0.1 Kelly, max 0.25u, one pick per player per stat, games within 12 h); `value_any_price` is paper.

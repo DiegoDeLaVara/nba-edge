@@ -128,23 +128,33 @@ def price_props(D, games, dists):
 
 
 def picks_from(props, now):
+    """One pick per player-stat per strategy (a player's lines move together): the line with the biggest edge."""
     out = []
     for s in CFG["strategies"]:
         if props.empty:
             break
-        X = props[props["stat"] == s["stat"]]
-        X = X[(X["ask"] - X["bid"]) <= s.get("max_spread", 0.10)]
+        X = props[props["stat"].isin(s["stats"])]
+        X = X[((X["ask"] - X["bid"]) <= s.get("max_spread", 0.10))]
+        mid = (X["bid"] + X["ask"]) / 2
+        X = X[(mid >= s.get("mid_lo", 0)) & (mid <= s.get("mid_hi", 1))]
+        best = {}
         for r in X.itertuples(index=False):
-            started = pd.Timestamp(r.tip) <= now
+            hours = (pd.Timestamp(r.tip) - now).total_seconds() / 3600
+            if hours <= 0 or hours > s.get("max_hours", 30):
+                continue
             for side, ev, cost, p in (("YES", r.ev_yes, r.cost_yes, r.p), ("NO", r.ev_no, r.cost_no, 1 - r.p)):
                 edge = p - cost
-                if edge > s["min_edge"] and not started:
+                if edge > s["min_edge"]:
                     units = kelly_units(p, cost, s["kelly"], s["max_units"])     # paper strategies log would-be units
-                    out.append({"strategy": s["name"], "staked": s["staked"], "ticker": r.ticker, "side": side, "gid": r.gid,
-                                "pid": r.pid, "player": r.player, "team": r.team, "opp": r.opp, "stat": r.stat, "label": r.label,
-                                "k": r.k, "pay": round(r.ask if side == "YES" else 1 - r.bid, 4), "cost": round(cost, 4),
-                                "p": round(p, 4), "edge": round(edge, 4), "ev": round(ev, 4), "units": units, "tip": r.tip,
-                                "mu": r.mu, "inj": r.inj})
+                    pk = {"strategy": s["name"], "staked": s["staked"], "ticker": r.ticker, "side": side, "gid": r.gid,
+                          "pid": r.pid, "player": r.player, "team": r.team, "opp": r.opp, "stat": r.stat, "label": r.label,
+                          "k": r.k, "pay": round(r.ask if side == "YES" else 1 - r.bid, 4), "cost": round(cost, 4),
+                          "p": round(p, 4), "edge": round(edge, 4), "ev": round(ev, 4), "units": units, "tip": r.tip,
+                          "mu": r.mu, "inj": r.inj, "hours": round(hours, 1)}
+                    key = (r.gid, r.pid, r.stat)
+                    if key not in best or edge > best[key]["edge"]:
+                        best[key] = pk
+        out += list(best.values())
     return out
 
 
@@ -262,7 +272,7 @@ def main():
     recent = sorted([e for e in L.values() if e.get("result") is not None], key=lambda e: e["tip"], reverse=True)[:150]
     board = {"generated": now.isoformat(), "model_trained": (load_json(data / "models.json", {})).get("trained"),
              "config": CFG, "corr": CORR, "games": gm, "projections": proj,
-             "props": props[props["stat"].isin({x["stat"] for x in CFG["strategies"]})].to_dict("records") if len(props) else [], "picks": picks, "record": rec,
+             "props": props[props["stat"].isin({st for x in CFG["strategies"] for st in x["stats"]})].to_dict("records") if len(props) else [], "picks": picks, "record": rec,
              "recent": recent, "open": [e for e in L.values() if e.get("result") is None]}
     (data / "board.json").write_text(json.dumps(board, default=str))
     log(f"picks {len(picks)} ({sum(1 for p in picks if p['staked'])} staked); record {json.dumps(rec)}")
