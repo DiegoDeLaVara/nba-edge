@@ -40,8 +40,8 @@
    "mid_hi": 0.65,
    "kelly": 0.1,
    "max_units": 0.25,
-   "staked": true,
-   "why": "Blend of model + Kalshi price, picks near 50c with 2%+ edge after fee. Backtest 1,093 bets: hit 56% at 52c avg, +5.3% ROI, both halves +, this season +3.9% (690 bets); 0 of 139 such rules passed in luck runs. Small stakes until the live record confirms.",
+   "staked": false,
+   "why": "Blend of model + Kalshi price, picks near 50c with 2%+ edge after fee. Backtest +5.3% (1,093 bets, hit 56% at 52c), but a near-identical model version gave only +1.3% -> fragile. Paper until ~150 live bets show ROI and CLV above 0.",
    "max_hours": 12
   },
   {

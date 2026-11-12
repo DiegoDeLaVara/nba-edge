@@ -47,8 +47,28 @@ def player_features(P):
     cm = cs["min"].cumsum() - Q["min"]
     for st in ("pts", "reb", "ast", "fg3m"):
         Q[f"{st}_spm"] = (cs[st].cumsum() - Q[st]) / cm.replace(0, np.nan)
-    # attach back the per-player state for absent players: last known min_e10 / pts_pm before this game
+    # shooting: prior three-point % over all earlier games, shrunk toward 35% with 150 attempts of prior
+    m3 = g["fg3m"].transform(lambda s: s.fillna(0).cumsum().shift(1)).fillna(0)
+    a3 = g["fg3a"].transform(lambda s: s.fillna(0).cumsum().shift(1)).fillna(0)
+    Q["fg3_pct_shr"] = (m3 + 0.35 * 150) / (a3 + 150)
+    # add_dvp(Q) is available but NOT used by the model: adding it cut the backtest from +5.3% to +1.3% (see VERDICT)
     return P, Q
+
+
+def add_dvp(Q, hl=12):
+    """Defence vs position: how far players at this position (G/F/C) beat their own recent average against this
+    opponent, EWMA over the opponent's earlier games only."""
+    Q = Q.copy()
+    Q["pg"] = np.where(Q["pos"].fillna("").str.contains("C"), "C", np.where(Q["pos"].fillna("").str.contains("G"), "G", "F"))
+    rot = Q["min_e10"] >= 15
+    for st in ("pts", "reb", "ast", "fg3m"):
+        Q[f"_r_{st}"] = np.where(rot, Q[st] - Q[f"{st}_e5"], np.nan)
+    agg = Q.groupby(["opp", "pg", "gid"], sort=False).agg(tip=("tip", "first"), **{f"r_{st}": (f"_r_{st}", "mean") for st in ("pts", "reb", "ast", "fg3m")}).reset_index()
+    agg = agg.sort_values("tip", kind="stable")
+    for st in ("pts", "reb", "ast", "fg3m"):
+        agg[f"dvp_{st}"] = agg.groupby(["opp", "pg"])[f"r_{st}"].transform(lambda s: s.shift(1).ewm(halflife=hl, min_periods=5).mean())
+    Q = Q.merge(agg[["opp", "pg", "gid"] + [f"dvp_{st}" for st in ("pts", "reb", "ast", "fg3m")]], on=["opp", "pg", "gid"], how="left")
+    return Q.drop(columns=[c for c in Q.columns if c.startswith("_r_")])
 
 
 def team_absence(P, Q):

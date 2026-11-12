@@ -55,8 +55,8 @@ function picksTab(){
   const P=(B.picks||[]).slice().sort((a,b)=>b.edge-a.edge);
   const staked=P.filter(p=>p.staked), paper=P.filter(p=>!p.staked);
   let h=`<div class="card banner"><b>How these picks work.</b> Each prop is priced with a blend of our player model and Kalshi's own price; a pick needs a 2%+ edge after Kalshi's fee.
-  <b>value 50c</b> (small stakes): lines near 50¢ — backtest 1,093 bets hit 56% at 52¢ average, +5.3%, and +3.9% on this season's games. It mostly fires on <b>threes unders</b> and <b>rebounds</b>; for points and assists Kalshi is so sharp the model rarely disagrees.
-  One pick per player per stat (his lines move together). Units = 0.1 Kelly, max 0.25u per pick. Unproven live — the Record tab will tell.</div>`;
+  <b>value 50c</b> (paper): lines near 50¢ — backtest 1,093 bets hit 56% at 52¢ average, +5.3%, but a near-identical model version made only +1.3%, so the edge is fragile and nothing is staked until the live record proves it. It mostly fires on <b>threes unders</b> and <b>rebounds</b>; for points and assists Kalshi is so sharp the model rarely disagrees.
+  One pick per player per stat (his lines move together). Units shown are what it would stake (0.1 Kelly, max 0.25u).</div>`;
   const by={}; P.forEach(p=>{(by[p.strategy]=by[p.strategy]||[]).push(p)});
   const order=(B.config.strategies||[]).map(s=>s.name);
   for(const s of order){ const L=by[s]||[]; const cfg=B.config.strategies.find(x=>x.name==s);

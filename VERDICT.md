@@ -140,3 +140,15 @@ The ~50¢ blend edge grows with the threshold (edge > 1/2/3/5%: +1.9/+5.3/+6.5/+
 at every threshold. It fires mostly on threes unders (+6.8%) and rebounds (both sides +7.6–10.5%); for points and
 assists the blend is ~90% Kalshi's price, so it rarely disagrees. Board strategy `value_50c` stakes it small
 (0.1 Kelly, max 0.25u, one pick per player per stat, games within 12 h); `value_any_price` is paper.
+
+## Round 3 (2026-11-12): trying to improve it — and a robustness warning
+
+* **Model features** (defence vs position inside the model, shrunk 3P%, short-term shot volume): accuracy barely moved
+  (points MAE 4.447 → 4.445, threes 0.879 → 0.877) but the ~50¢ blend rule fell from **+5.3% to +1.3%** (this season
+  +0.3%); 1 of 139 rules passed vs 1 in a luck run. A near-identical model halving-to-quartering the return means the
+  +5.3% is fragile. The model stays on the original feature set and `value_50c` goes back to **paper**.
+* On the original model: threes overs lose in every slice (−3.6%); threes unders (+6.7%) and rebounds (both sides)
+  carry the result; edge-tiered stakes beat flat stakes (+5.9% vs +4.9% per unit); entering ~3h before tip is not
+  clearly better.
+* Next: price disagreements between venues (Kalshi vs Polymarket, which lists full NBA props with free price history)
+  — the only kind of edge that held up in tennis, and it doesn't depend on a model.
