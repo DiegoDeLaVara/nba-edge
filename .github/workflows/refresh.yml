@@ -34,6 +34,7 @@ jobs:
       - run: pip install -q -r requirements.txt
       - name: Refresh every 20 minutes
         env:
+          ODDS_API_KEY: ${{ secrets.ODDS_API_KEY }}
           REPO_URL: https://x-access-token:${{ github.token }}@github.com/${{ github.repository }}.git
         run: |
           start=$(date +%s)

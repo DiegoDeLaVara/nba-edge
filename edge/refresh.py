@@ -222,6 +222,9 @@ def record(L):
     return out
 
 
+_FAKE_EVENTS = None      # tests inject a fake Odds API response here
+
+
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--data", default="out")
@@ -259,6 +262,20 @@ def main():
     picks = picks_from(props, now)
     L = update_log(data / "picklog.json", picks, props, now, P)
     rec = record(L)
+    # sportsbook line shopping (Kalshi + Pinnacle fair vs US books); never let it break the board
+    try:
+        from edge import books
+        bstate, BL, bfound, bc, has_key = books.run(data, games, props, kget, CFG, log, now_ts=now.timestamp(),
+                                                   fake_events=_FAKE_EVENTS)
+        BL = books.grade(BL, G, P); (data / "books_log.json").write_text(json.dumps(BL))
+        bsum = books.summary(BL, bstate, bc, has_key)
+        books_board = {"summary": bsum, "staked": bc["staked"],
+                       "open": sorted([e for e in BL.values() if e.get("result") is None], key=lambda e: -e["ev"]),
+                       "recent": sorted([e for e in BL.values() if e.get("result") is not None], key=lambda e: e["tip"], reverse=True)[:100]}
+        log(f"books: found {len(bfound)}, open {len(books_board['open'])}, credits left {bsum['credits_left']}, key {has_key}")
+    except Exception as ex:                 # pragma: no cover
+        import traceback; traceback.print_exc()
+        books_board = {"error": f"{type(ex).__name__}: {ex}"}
     gm = []
     for g in games:
         x = X[X["gid"] == g["gid"]] if len(X) else X
@@ -273,7 +290,7 @@ def main():
     board = {"generated": now.isoformat(), "model_trained": (load_json(data / "models.json", {})).get("trained"),
              "config": CFG, "corr": CORR, "games": gm, "projections": proj,
              "props": props[props["stat"].isin({st for x in CFG["strategies"] for st in x["stats"]})].to_dict("records") if len(props) else [], "picks": picks, "record": rec,
-             "recent": recent, "open": [e for e in L.values() if e.get("result") is None]}
+             "recent": recent, "open": [e for e in L.values() if e.get("result") is None], "books": books_board}
     (data / "board.json").write_text(json.dumps(board, default=str))
     log(f"picks {len(picks)} ({sum(1 for p in picks if p['staked'])} staked); record {json.dumps(rec)}")
 

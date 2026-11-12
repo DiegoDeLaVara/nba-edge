@@ -4,3 +4,4 @@ pub/
 __pycache__/
 *.pyc
 .venv/
+out_bt/

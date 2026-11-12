@@ -60,5 +60,29 @@
    "staked": false,
    "why": "Same blend at any price (+7.1% backtest, +1.9% this season). Paper."
   }
- ]
+ ],
+ "books": {
+  "daily_credits": 3,
+  "reserve": 60,
+  "main_every_hours": 20,
+  "main_window_hours": [
+   0.5,
+   8
+  ],
+  "props_events_per_day": 0,
+  "props_markets": [
+   "player_points",
+   "player_threes",
+   "player_rebounds"
+  ],
+  "min_ev": 0.02,
+  "min_ev_one_source": 0.03,
+  "max_ev": 0.15,
+  "max_odds": 3.0,
+  "max_kalshi_spread": 0.05,
+  "kelly": 0.25,
+  "max_units": 1.0,
+  "staked": true,
+  "why": "Line shopping: a US book pays more than the fair price (Kalshi mid, plus Pinnacle no-vig when available). Same method as Tennis Edge's +3-8% book result; NBA live record pending. 3 credits/day (one game-line scan) because the Odds API key is shared with Tennis Edge; raise daily_credits / props_events_per_day on a bigger plan."
+ }
 }

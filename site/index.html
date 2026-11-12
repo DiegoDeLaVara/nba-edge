@@ -37,7 +37,7 @@ input[type=checkbox]{transform:scale(1.2)}select{font:inherit;padding:4px;border
 </header>
 <main id="main"></main>
 <script>
-const TABS=[["picks","Picks"],["parlay","Parlays"],["games","Games"],["record","Record"],["how","How"]];
+const TABS=[["picks","Picks"],["books","Books"],["parlay","Parlays"],["games","Games"],["record","Record"],["how","How"]];
 let B=null, tab=(()=>{try{return localStorage.getItem("nba_tab")||"picks"}catch(e){return "picks"}})(), sel=new Set();
 const $=s=>document.querySelector(s), pct=x=>x==null?"–":(100*x).toFixed(1)+"%", sg=x=>(x>=0?"+":"")+(100*x).toFixed(1)+"%";
 const amer=d=>d>=2?"+"+Math.round((d-1)*100):"-"+Math.round(100/(d-1));
@@ -63,7 +63,7 @@ function picksTab(){
     h+=`<div class="card"><div class="row"><div class="big">${s.replace("_"," ")}</div><div class="mute">${L.length} picks · ${cfg.staked?"staked":"paper"}</div></div><div class="mute">${cfg.why}</div>`;
     if(!L.length){h+=`<div class="mute" style="margin-top:6px">No picks right now.</div>`}
     h+=`<div class="scroll"><table><tr><th>Pick</th><th class="n">Price</th><th class="n">Model</th><th class="n">EV</th><th class="n">Units</th></tr>`+
-      L.slice(0,40).map(p=>`<tr><td>${legLine(p)}<div class="mute">${tip(p.tip)} · proj ${p.mu} ${p.inj?"· <span class='warn'>"+p.inj+"</span>":""}</div></td>
+      L.slice(0,40).map(p=>`<tr><td>${legLine(p)}<div class="mute">${tip(p.tip)} · proj ${p.mu} ${p.inj?"· <span class='warn'>"+p.inj+"</span>":""}${p.ev>0.10?" · <span class='warn'>big model EV — check news first; in backtests 10%+ claims didn't pay more</span>":""}</div></td>
       <td class="n">${Math.round(100*p.pay)}¢</td><td class="n">${pct(p.p)}</td><td class="n good">${sg(p.ev)}</td><td class="n">${p.units.toFixed(2)}u${p.staked?"":"<div class='mute'>paper</div>"}</td></tr>`).join("")+`</table></div></div>`;
   }
   return h;
@@ -131,6 +131,31 @@ function recordTab(){
     (B.recent||[]).slice(0,80).map(e=>`<tr><td>${legLine(e)}<div class="mute">${e.strategy} · ${new Date(e.tip).toLocaleDateString()}</div></td><td class="n">${Math.round(100*e.entry)}¢</td><td class="n">${e.close!=null?Math.round(100*e.close)+"¢":"–"}</td><td class="n ${e.result=="won"?"good":e.result=="lost"?"bad":""}">${e.result}${e.actual!=null?" ("+e.actual+")":""}</td></tr>`).join("")+`</table></div></div>`;
   return h;
 }
+function booksTab(){
+  const K=B.books||{}; const S=K.summary||{};
+  if(K.error) return `<div class="card bad">Books scanner error: ${K.error}</div>`;
+  let h=`<div class="card banner"><b>Line shopping.</b> A US sportsbook pays more than the fair price — Kalshi's mid for the same line, averaged with Pinnacle's no-vig line when available.
+  Same method that made +3–8% in Tennis Edge; the NBA record below is the judge. Bet at the book shown, at that price or better.
+  ${S.has_key?"":"<div class='warn' style='margin-top:6px'>Waiting for the ODDS_API_KEY secret on this repo.</div>"}
+  <div class="mute" style="margin-top:6px">Odds API credits left ${S.credits_left??"–"} · spent today ${S.spent_today??0}/${S.daily_budget??"–"} (reserve ${S.reserve??"–"} kept for Tennis Edge) · last scan ${S.last_scan?new Date(S.last_scan*1000).toLocaleString():"–"}</div></div>`;
+  const O=K.open||[];
+  h+=`<div class="card"><div class="big">Open bets (${O.length})</div><div class="scroll"><table><tr><th>Bet</th><th class="n">Odds</th><th class="n">Fair</th><th class="n">EV</th><th class="n">Units</th></tr>`+
+    O.map(e=>`<tr><td>${e.label}<div class="mute">${e.game} · ${tip(e.tip)} · ${e.book_name}${e.fair_pinnacle!=null?" · Pinnacle "+pct(e.fair_pinnacle):""}${e.fair_kalshi!=null?" · Kalshi "+pct(e.fair_kalshi):""}${e.flag?" · <span class='warn'>"+e.flag+"</span>":""}</div></td>
+      <td class="n">${e.american}</td><td class="n">${pct(e.fair)}</td><td class="n good">${sg(e.ev)}</td><td class="n">${(e.units||0).toFixed(2)}u</td></tr>`).join("")+`</table></div>${O.length?"":"<div class='mute'>Nothing above the bar right now.</div>"}</div>`;
+  // same-book parlays: legs from different games at one book; independent, so hit = product of fair, payout = product of odds
+  const byBook={}; O.filter(e=>!e.flag).forEach(e=>{(byBook[e.book_name]=byBook[e.book_name]||[]).push(e)});
+  const P=[];
+  for(const [bk,L] of Object.entries(byBook)){ for(let i=0;i<L.length;i++)for(let j=i+1;j<L.length;j++){ if(L[i].gid==L[j].gid)continue;
+    const legs=[L[i],L[j]]; P.push({bk,legs});
+    for(let k=j+1;k<L.length;k++){ if(L[k].gid==L[i].gid||L[k].gid==L[j].gid)continue; P.push({bk,legs:[L[i],L[j],L[k]]}); } } }
+  P.forEach(p=>{p.hit=p.legs.reduce((a,l)=>a*l.fair,1);p.dec=p.legs.reduce((a,l)=>a*l.price,1);p.ev=p.hit*p.dec-1});
+  P.sort((a,b)=>b.ev-a.ev);
+  h+=`<div class="card"><div class="big">Same-book parlays from +EV legs</div><div class="mute">Only legs that are +EV on their own, from different games (independent). Payout = the book's parlay odds if it multiplies prices. Stake 0.25u.</div>`+
+    (P.length?`<div class="scroll"><table><tr><th>Legs</th><th class="n">Hit</th><th class="n">Payout</th><th class="n">EV</th></tr>`+P.slice(0,10).map(p=>`<tr><td>${p.bk}: ${p.legs.map(l=>l.label).join(" + ")}</td><td class="n">${pct(p.hit)}</td><td class="n">${p.dec.toFixed(2)}x</td><td class="n good">${sg(p.ev)}</td></tr>`).join("")+`</table></div>`:`<div class="mute">Needs 2+ legs at the same book.</div>`)+`</div>`;
+  h+=`<div class="card"><div class="big">Record</div><div class="mute">${S.n||0} graded · won ${S.won||0} · ROI ${S.roi==null?"–":sg(S.roi)} · ${(S.units||0).toFixed(2)}u on ${(S.units_staked||0).toFixed(2)}u staked · closing-line value vs Kalshi ${S.clv==null?"–":sg(S.clv)} (${S.clv_n||0} bets)</div>
+    <div class="scroll"><table><tr><th>Bet</th><th class="n">Odds</th><th class="n">CLV</th><th class="n">Result</th></tr>`+(K.recent||[]).slice(0,60).map(e=>`<tr><td>${e.label}<div class="mute">${e.game} · ${e.book_name}</div></td><td class="n">${e.american}</td><td class="n">${e.clv==null?"–":sg(e.clv)}</td><td class="n ${e.result=="won"?"good":e.result=="lost"?"bad":""}">${e.result}</td></tr>`).join("")+`</table></div></div>`;
+  return h;
+}
 function howTab(){return `<div class="card"><b>What this is.</b> A walk-forward NBA model (team ratings + per-player minutes and rates, injuries, rest, opponent, pace) priced against every open Kalshi player prop.
 Research verdict (Nov 2025 – Nov 2026, Kalshi prices just before tip, fee included):
 <ul><li>Moneylines, spreads, totals: Kalshi is sharper than the model; model bets lost.</li>
@@ -139,7 +164,7 @@ Research verdict (Nov 2025 – Nov 2026, Kalshi prices just before tip, fee incl
 <li>Tested and priced in (don't bet them): favourite team's starters over −18%; soft defence vs position over −16% (tough defence under −6%); high team total over −16%; teammates out → starters over −16%; rested players over −17%; back-to-back starters under −4%; following or fading prop moves; game-line moves before tip.</li>
 <li>"Safe" legs (85–97¢) lose ~1.5–3% each; parlays multiply that.</li></ul>
 Refreshes every ~20 min in GitHub Actions. Not financial advice.</div>`}
-function render(){ if(!B) return; $("#main").innerHTML={picks:picksTab,parlay:parlayTab,games:gamesTab,record:recordTab,how:howTab}[tab](); }
+function render(){ if(!B) return; $("#main").innerHTML={picks:picksTab,books:booksTab,parlay:parlayTab,games:gamesTab,record:recordTab,how:howTab}[tab](); }
 load(); setInterval(load, 5*60*1000);
 </script>
 </body>
