@@ -205,3 +205,24 @@ real evidence of profit in this family of projects is **sportsbook line shopping
 averages −0.1¢ (|drift| 2.6¢), no usable direction. Model+Kalshi blend at the open: −3.2% on all games (+0.3¢ CLV
 — that's the absence leak: the model "knows" who sat out), −8% to −11% on games with no absences on either team
 (CLV −1.1¢). Opening prices are not an edge; injury news is what moves them.
+
+## Round 7 (2026-11-16): are Kalshi NBA combos underpriced? (`tools/combo_collect.py`, `combo_trades.py`, `combo_test.py`)
+
+29,855 settled all-NBA combos (2–8 legs, at least one prop leg, 15% outcome-blind sample) over 22 complete nights of
+2026-27, bought before any of their games tipped, priced at the pre-tip volume-weighted trade price (not the last
+print, which for losers is often an in-game near-zero). Leg fair = Kalshi mid when the combo was created.
+Leaks fixed on the way: narrow close-time windows over-sample winners (losing combos settle early), last price, and
+rate-limit-truncated nights — every night now fetched in full or not at all.
+
+| Slice | Combos | Paid | Hit | Gross ROI/$ | After taker fee | Night t |
+|---|---|---|---|---|---|---|
+| All | 29,855 | 19.1¢ | 20.0% | +4.8% | −4.4% | 0.7 |
+| Same game | 12,308 | 20.8¢ | 22.1% | +6.2% | −2.9% | 0.9 |
+| Different games | 17,547 | 17.9¢ | 18.5% | +3.7% | — | 0.5 |
+| Every leg ≥ 70%, same game | 1,298 | 46.3¢ | 49.8% | +7.6% | +0.6% | 1.0 |
+| Every leg ≥ 80%, same game | 226 | 58.8¢ | 60.2% | +2.4% | — | 0.3 |
+| All prop unders | 314 | 27.7¢ | 26.4% | −4.5% | — | −0.5 |
+
+Combo prices are ~1.14× the legs' independent product, about what the correlation is worth. The first 7 nights
+(+16.8%) were luck: on 22 nights half are winners, and nightly ROI on the safest slice swings −59%..+84%.
+**No combo edge after the 0.07·p(1−p) fee; same-game unders ("safer alt" legs) slightly negative.**
