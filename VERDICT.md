@@ -226,3 +226,21 @@ rate-limit-truncated nights — every night now fetched in full or not at all.
 Combo prices are ~1.14× the legs' independent product, about what the correlation is worth. The first 7 nights
 (+16.8%) were luck: on 22 nights half are winners, and nightly ROI on the safest slice swings −59%..+84%.
 **No combo edge after the 0.07·p(1−p) fee; same-game unders ("safer alt" legs) slightly negative.**
+
+## Round 8 (2026-11-17): injury-news speed (`tools/injury_reports.py`, `injury_events.py`, `minute_candles.py`, `injury_test.py`)
+
+All 2,585 official NBA injury reports of 2026-27 to Nov 16 (one PDF every 15 min, parsed with the standard library;
+teams taken from box-score rosters because the PDF's merged cells mislabel rows) → 248 status changes, 130 for
+rotation players (≥20 min) at least 10 min before tip (typical: Questionable → Out ~75 min before tip). Kalshi
+1-minute prices for the team moneyline and every teammate points prop around the report time T.
+
+* Most of the move comes **after** the report (the market isn't front-running it): teammates' points overs when a
+  player is ruled out drift +0.5¢ by T, +1.0¢ by T+15m, +1.4¢ by tip. The moneyline moves +0.7¢ by T, +0.9¢ by tip.
+* But the moves are small next to the cost of crossing the spread: buying the expected side at the ask 2 min after
+  the report gives CLV −1.2¢ (teammate overs), −0.4¢ (ML), and ROI after fee −7.5% (1,425 markets, 76 events),
+  −12% (ML, 82). Waiting longer is worse. "Plays" news: −8% / −4%.
+* Only hint: a **star** (≥20 ppg) ruled out — teammates' overs move +3.9¢ to tip, +5.6¢ on 30–70¢ markets; buying
+  at T+2 gets CLV +1.5¢ there, about the fee. 13 events, ROI −1.5% (SE 12%) — nothing to trade, and a human
+  reading the report wouldn't reliably be in within 2 minutes.
+
+**No injury-speed edge on Kalshi NBA: the reaction is slow but too small to pay the spread and fee.**
